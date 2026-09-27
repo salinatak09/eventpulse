@@ -1,0 +1,7 @@
+{
+  "name": "EventPulse - Conference LinkedIn Post Generator",
+  "description": "Enterprise social engagement engine for conferences. Equip speakers, sponsors, and attendees with verified talking points and 1-click LinkedIn virality presets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
