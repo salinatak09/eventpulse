@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EventData, PulsePost } from '../types';
 
 interface OrganizerViewProps {
@@ -27,6 +27,16 @@ export const OrganizerView: React.FC<OrganizerViewProps> = ({
   const [websiteUrl, setWebsiteUrl] = useState(eventData.socialLinks.website);
 
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Sync state if eventData prop changes (e.g. creating new event or switching presets)
+  useEffect(() => {
+    setEventName(eventData.name);
+    setOrganizer(eventData.organizer);
+    setHashtags(eventData.hashtags);
+    setLinkedinSlug(eventData.socialLinks.linkedin);
+    setTwitterHandle(eventData.socialLinks.twitter);
+    setWebsiteUrl(eventData.socialLinks.website);
+  }, [eventData]);
 
   const attendeeLink = `https://eventpulse.app/event/${eventData.id}/create`;
 

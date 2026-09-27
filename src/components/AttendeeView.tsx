@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { EventData, MediaItem, ToneType, PulsePost } from '../types';
 import { TONE_OPTIONS, ATTENDEE_PRESET_USER } from '../data/initialData';
 import { generatePostContent } from '../utils/postGenerator';
@@ -45,12 +45,34 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({
     })
   );
 
+  // Keep post content in sync if event name/hashtags change from Organizer View
+  const initialEventIdRef = useRef(eventData.id);
+  useEffect(() => {
+    if (initialEventIdRef.current !== eventData.id) {
+      initialEventIdRef.current = eventData.id;
+      setPostCopy(
+        generatePostContent({
+          notes,
+          tone: selectedTone,
+          authorName,
+          authorHeadline,
+          event: eventData,
+        })
+      );
+    }
+  }, [eventData, notes, selectedTone, authorName, authorHeadline]);
+
   // Social interactions simulation
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(48);
   const [isReposted, setIsReposted] = useState(false);
   const [repostCount, setRepostCount] = useState(3);
-  const [commentsCount] = useState(8);
+  const [comments, setComments] = useState<string[]>([
+    'Incredible takeaways! The 60% latency benchmark matches our internal tests.',
+    'Great connecting today Elena and team!',
+  ]);
+  const [showComments, setShowComments] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
 
   const [copiedPost, setCopiedPost] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,7 +159,7 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({
       timeAgo: 'Just now',
       content: `"${postCopy.slice(0, 140)}..."`,
       likes: likeCount,
-      comments: commentsCount,
+      comments: comments.length,
       generatedWithEventPulse: true,
     };
     onPublishToPulse(newPulse);
@@ -596,9 +618,13 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="hover:text-[#0A66C2] cursor-pointer">
-                  {commentsCount} comments
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowComments(!showComments)}
+                  className="hover:text-[#0A66C2] cursor-pointer text-xs"
+                >
+                  {comments.length} comments
+                </button>
                 <span>•</span>
                 <span className="hover:text-[#0A66C2] cursor-pointer">
                   {repostCount} reposts
@@ -628,8 +654,10 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => onToast('Comment composer activated')}
-                className="flex-1 py-2 rounded-md hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-colors flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                onClick={() => setShowComments(!showComments)}
+                className={`flex-1 py-2 rounded-md transition-colors flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
+                  showComments ? 'text-[#0A66C2] bg-[#F1F5F9]' : 'hover:bg-[#F1F5F9] hover:text-[#0F172A]'
+                }`}
               >
                 <span className="material-symbols-outlined text-[18px]">comment</span>
                 <span>Comment</span>
@@ -650,13 +678,59 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({
 
               <button
                 type="button"
-                onClick={handleCopyPost}
+                onClick={() => {
+                  handleCopyPost();
+                  onToast('Post link & copy copied ready to send via message!');
+                }}
                 className="flex-1 py-2 rounded-md hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-colors flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">send</span>
                 <span>Send</span>
               </button>
             </div>
+
+            {/* Interactive Comments Drawer */}
+            {showComments && (
+              <div className="border-t border-[#F1F5F9] p-4 bg-[#F8FAFC]/50 space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newCommentText.trim()) {
+                        setComments((prev) => [...prev, newCommentText.trim()]);
+                        setNewCommentText('');
+                        onToast('Comment posted!');
+                      }
+                    }}
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-white border border-[#E2E8F0] rounded-full px-3.5 py-1.5 text-xs text-[#0B1C30] focus:outline-none focus:border-[#0A66C2]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newCommentText.trim()) {
+                        setComments((prev) => [...prev, newCommentText.trim()]);
+                        setNewCommentText('');
+                        onToast('Comment posted!');
+                      }
+                    }}
+                    className="bg-[#0A66C2] text-white px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-[#004182] transition-colors cursor-pointer"
+                  >
+                    Post
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {comments.map((c, i) => (
+                    <div key={i} className="text-xs bg-white p-2.5 rounded-lg border border-[#E2E8F0] text-[#0F172A]">
+                      <span className="font-semibold text-[#0A66C2] block text-[11px] mb-0.5">Attendee</span>
+                      {c}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action CTAs below preview */}
